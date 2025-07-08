@@ -1,0 +1,1275 @@
+.kiosk-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.kiosk-header {
+  padding: 16px;
+  background-color: #1976d2;
+  color: white;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.kiosk-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.session-info {
+  margin-top: 8px;
+}
+
+.session-info h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.session-info p {
+  margin: 4px 0;
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.kiosk-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 1;
+  padding: 16px;
+  overflow: auto;
+}
+
+/* Add a new container for the check-in section */
+.checkin-section {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px; /* Increased to accommodate side-by-side layout */
+  margin: 0 auto;
+}
+
+/* Create a flex container for camera and checkins on larger screens */
+@media (min-width: 992px) {
+  .checkin-section {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .camera-and-controls {
+    flex: 1;
+    max-width: 60%;
+  }
+
+  .recent-checkins-container {
+    flex: 1;
+    max-width: 40%;
+    position: sticky;
+    top: 16px;
+  }
+}
+
+/* New container for camera and its controls */
+.camera-and-controls {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.camera-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 500px; /* Reduced from default */
+  height: 0;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: #000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #666; /* Add border to make it visible */
+}
+
+.camera-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 500px; /* Match the camera wrapper */
+  margin: 0 auto;
+}
+
+.camera-controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.camera-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* This ensures the video fills the container */
+  z-index: 1; /* Make sure it's above the background */
+}
+
+.camera-view.error,
+.camera-view.ready {
+  background-color: #333;
+  border: 2px solid #ff5252;
+}
+
+.camera-loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  z-index: 2;
+  text-align: center;
+}
+
+.status-indicator {
+  width: 100%;
+  max-width: 500px; /* Match the camera wrapper */
+  margin: 12px auto;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  background-color: #f5f5f5;
+}
+
+.status-indicator.ready {
+  background-color: rgba(25, 118, 210, 0.7);
+}
+
+.status-indicator.scanning {
+  background-color: rgba(25, 118, 210, 0.7);
+}
+
+.status-indicator.processing {
+  background-color: rgba(255, 152, 0, 0.7);
+}
+
+.status-indicator.success {
+  background-color: #e8f5e9;
+  border: 1px solid #4caf50;
+  color: #2e7d32;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.status-indicator.error {
+  background-color: rgba(244, 67, 54, 0.7);
+}
+
+.status-message {
+  font-size: 1.2rem;
+  padding: 8px;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px auto;
+  max-width: 500px; /* Match the camera wrapper */
+}
+
+button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.capture-button {
+  background-color: #1976d2;
+  color: white;
+}
+
+.capture-button:hover:not(:disabled) {
+  background-color: #1565c0;
+}
+
+.secondary-button {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.error-message {
+  margin-top: 16px;
+  padding: 12px 36px 12px 16px;
+  background-color: #ffebee;
+  color: #d32f2f;
+  border-radius: 4px;
+  text-align: center;
+  max-width: 640px;
+  position: relative;
+}
+
+.close-error {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.close-error:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 50%;
+}
+
+.recent-checkins-container {
+  width: 100%;
+  margin-top: 24px; /* Only applies on mobile */
+  height: 100%;
+}
+
+.recent-checkins {
+  padding: 16px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-height: none; /* Remove the max-height restriction */
+  overflow-y: auto;
+  height: 100%;
+  border: 1px solid #e0e0e0;
+}
+
+/* Add a title for the recent check-ins */
+.recent-checkins-title {
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #1976d2;
+  color: #1976d2;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Style the check-in list more like a table */
+.checkin-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.checkin-item {
+  display: flex;
+  flex-direction: row; /* Changed from column to row */
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+  margin-bottom: 0; /* Remove margin-bottom */
+  border-radius: 0; /* Remove border-radius */
+  box-shadow: none; /* Remove box-shadow */
+}
+
+.checkin-item:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.checkin-item:hover {
+  background-color: #f5f5f5;
+}
+
+.checkin-item.late {
+  background-color: #fff8e1;
+  border-left: 4px solid #ff9800;
+}
+
+.checkin-item.present {
+  background-color: #e8f5e9;
+  border-left: 4px solid #4caf50;
+}
+
+.checkin-name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0;
+  flex: 2;
+}
+
+.checkin-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+}
+
+.checkin-time {
+  color: #757575;
+  font-size: 0.9em;
+  flex: 1;
+  text-align: center;
+}
+
+.checkin-status {
+  color: #4caf50;
+  font-weight: 600;
+  font-size: 0.9em;
+  flex: 1;
+  text-align: right;
+  padding-right: 8px;
+}
+
+.checkin-item.late .checkin-status {
+  color: #ff9800;
+}
+
+/* Table header for check-ins */
+.checkin-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: #f5f5f5;
+  border-bottom: 2px solid #ddd;
+  font-weight: bold;
+  color: #555;
+}
+
+.checkin-header-name {
+  flex: 2;
+}
+
+.checkin-header-time {
+  flex: 1;
+  text-align: center;
+}
+
+.checkin-header-status {
+  flex: 1;
+  text-align: right;
+  padding-right: 8px;
+}
+
+.no-checkins {
+  text-align: center;
+  color: #757575;
+  padding: 24px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  margin-top: 16px;
+}
+
+/* Add a container for the session selector */
+.session-selector-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-bottom: 24px;
+}
+
+.session-info-detailed {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.session-info-detailed h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.4rem;
+  text-align: center;
+}
+
+.session-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-notes {
+  font-style: italic;
+  margin-top: 8px;
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.session-status {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.details-card {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  border-left: 4px solid #1976d2;
+}
+
+.details-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.class-description,
+.session-notes {
+  margin-top: 8px;
+  font-style: italic;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  border-left: 2px solid #1976d2;
+}
+
+/* Media queries for responsive design */
+@media (min-width: 768px) {
+  .session-details {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .detail-item {
+    margin-right: 16px;
+  }
+
+  .class-details-brief {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .class-details-brief .detail-item {
+    margin-right: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .kiosk-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .session-info h2 {
+    font-size: 1.2rem;
+  }
+
+  .controls {
+    flex-direction: column;
+  }
+
+  button {
+    width: 100%;
+  }
+}
+
+@media (min-width: 600px) {
+  .controls {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+/* Add this to your AttendanceKiosk.css file */
+.selected-class-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.back-button {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #1976d2;
+  background: transparent;
+  border: 1px solid #1976d2;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.back-button:hover {
+  background-color: rgba(25, 118, 210, 0.08);
+}
+
+.back-button svg {
+  font-size: 16px;
+}
+
+/* Add this to your AttendanceKiosk.css file */
+
+.session-info-intermediate {
+  margin-top: 16px;
+  padding: 12px 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.session-info-intermediate h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.4rem;
+}
+
+.session-info-intermediate p {
+  margin: 4px 0 12px 0;
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.class-details-brief {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Add these new styles to the end of the file */
+
+/* Camera Processing Overlay */
+.camera-processing-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+/* Camera Success Overlay */
+.camera-success-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(76, 175, 80, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+.camera-success-overlay p {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+.success-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #4caf50;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.5rem;
+  margin: 0 auto 12px;
+  border: 3px solid white;
+  line-height: 1;
+  text-align: center;
+  padding-bottom: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.camera-error-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(244, 67, 54, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+.retry-button {
+  background-color: white;
+  color: #f44336;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.retry-button:hover {
+  background-color: #f5f5f5;
+}
+
+/* Status indicator improvements */
+.status-indicator {
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  padding: 8px;
+  text-align: center;
+  font-weight: 500;
+  border: 1px solid #e0e0e0;
+}
+
+.status-indicator.scanning {
+  background-color: #e3f2fd;
+  border-color: #90caf9;
+}
+
+.status-indicator.processing {
+  background-color: #fff8e1;
+  border-color: #ffe082;
+}
+
+.status-indicator.success {
+  background-color: #e8f5e9;
+  border-color: #a5d6a7;
+}
+
+.status-indicator.error {
+  background-color: #ffebee;
+  border-color: #ffcdd2;
+}
+
+.status-message {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Add these new styles for the side-by-side layout */
+
+/* Side-by-side layout container */
+.checkin-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 20px;
+}
+
+/* On larger screens, make it a row */
+@media (min-width: 992px) {
+  .checkin-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .camera-column {
+    flex: 3; /* Camera takes 3/5 of the space */
+    max-width: 60%;
+  }
+
+  .checkins-column {
+    flex: 2; /* Check-ins take 2/5 of the space */
+    max-width: 40%;
+    position: sticky;
+    top: 16px;
+  }
+}
+
+/* Camera column */
+.camera-column {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Check-ins column */
+.checkins-column {
+  width: 100%;
+  height: 100%;
+}
+
+/* Style the Recent Check-ins */
+.recent-checkins {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  height: 100%;
+  min-height: 300px;
+  border: 1px solid #e0e0e0;
+}
+
+.recent-checkins h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #1976d2;
+  color: #1976d2;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Style the check-in list as a table */
+.checkin-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.checkin-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+}
+
+.checkin-item:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.checkin-item:hover {
+  background-color: #f5f5f5;
+}
+
+.checkin-item.late {
+  background-color: #fff8e1;
+  border-left: 4px solid #ff9800;
+}
+
+.checkin-item.present {
+  background-color: #e8f5e9;
+  border-left: 4px solid #4caf50;
+}
+
+.checkin-name {
+  flex: 2;
+  font-weight: 600;
+  padding-right: 10px;
+}
+
+.checkin-time {
+  flex: 1;
+  text-align: center;
+  color: #757575;
+}
+
+.checkin-status {
+  flex: 1;
+  text-align: right;
+  font-weight: 600;
+  color: #4caf50;
+}
+
+.checkin-item.late .checkin-status {
+  color: #ff9800;
+}
+
+/* Add table header for check-ins */
+.checkin-header {
+  display: flex;
+  padding: 10px 12px;
+  background-color: #f5f5f5;
+  border-bottom: 2px solid #ddd;
+  font-weight: bold;
+  color: #555;
+}
+
+.checkin-header-name {
+  flex: 2;
+}
+
+.checkin-header-time {
+  flex: 1;
+  text-align: center;
+}
+
+.checkin-header-status {
+  flex: 1;
+  text-align: right;
+}
+
+.no-checkins {
+  text-align: center;
+  color: #757575;
+  padding: 24px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  margin-top: 16px;
+}
+
+/* Attendance Summary */
+.attendance-summary {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e0e0;
+}
+
+.attendance-summary h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #1976d2;
+  color: #1976d2;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.summary-stats {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.stat-item {
+  flex: 1;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  margin: 0 4px;
+}
+
+.stat-item:first-child {
+  margin-left: 0;
+}
+
+.stat-item:last-child {
+  margin-right: 0;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.stat-item.present {
+  background-color: #e8f5e9;
+  border-left: 4px solid #4caf50;
+}
+
+.stat-item.present .stat-value {
+  color: #2e7d32;
+}
+
+.stat-item.late {
+  background-color: #fff8e1;
+  border-left: 4px solid #ff9800;
+}
+
+.stat-item.late .stat-value {
+  color: #ef6c00;
+}
+
+.stat-item.absent {
+  background-color: #ffebee;
+  border-left: 4px solid #f44336;
+}
+
+.stat-item.absent .stat-value {
+  color: #c62828;
+}
+
+/* Add these new styles for camera guide text */
+.camera-guide-text {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  text-align: center;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 4px 0;
+  margin: 0;
+  font-size: 0.9rem;
+  z-index: 10;
+}
+
+/* Toggle button */
+.view-toggle {
+  margin-bottom: 10px;
+  text-align: right;
+}
+
+.view-toggle-button {
+  background-color: transparent;
+  border: none;
+  color: #1976d2;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 4px;
+}
+
+.view-toggle-button:hover {
+  background-color: rgba(25, 118, 210, 0.08);
+}
+
+.view-toggle-button::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 6px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+}
+
+.view-toggle-button.expanded::before {
+  border-top: 5px solid #1976d2;
+  border-bottom: none;
+}
+
+.view-toggle-button.collapsed::before {
+  border-bottom: 5px solid #1976d2;
+  border-top: none;
+}
+
+/* Full Attendance Table */
+.full-attendance {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  height: 100%;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.attendance-header {
+  display: flex;
+  padding: 10px 12px;
+  background-color: #f5f5f5;
+  border-bottom: 2px solid #ddd;
+  font-weight: bold;
+  color: #555;
+}
+
+.attendance-header-name {
+  flex: 2;
+}
+
+.attendance-header-time {
+  flex: 1;
+  text-align: center;
+}
+
+.attendance-header-status {
+  flex: 1;
+  text-align: right;
+}
+
+.attendance-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.attendance-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+}
+
+.attendance-item:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.attendance-item:hover {
+  background-color: #f5f5f5;
+}
+
+.attendance-item.late {
+  background-color: #fff8e1;
+  border-left: 4px solid #ff9800;
+}
+
+.attendance-item.present {
+  background-color: #e8f5e9;
+  border-left: 4px solid #4caf50;
+}
+
+.attendance-item.absent {
+  background-color: #ffebee;
+  border-left: 4px solid #f44336;
+}
+
+.attendance-name {
+  flex: 2;
+  font-weight: 600;
+  padding-right: 10px;
+}
+
+.attendance-time {
+  flex: 1;
+  text-align: center;
+  color: #757575;
+}
+
+.attendance-status {
+  flex: 1;
+  text-align: right;
+  font-weight: 600;
+}
+
+.attendance-item.present .attendance-status {
+  color: #4caf50;
+}
+
+.attendance-item.late .attendance-status {
+  color: #ff9800;
+}
+
+.attendance-item.absent .attendance-status {
+  color: #f44336;
+}
+
+.no-attendance {
+  text-align: center;
+  color: #757575;
+  padding: 24px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+/* Improved Session Selector Styling */
+.session-selector {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.select-container {
+  margin-bottom: 16px;
+}
+
+.select-container label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 16px;
+}
+
+.select-container select {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: white;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.select-container select:hover {
+  border-color: #aaa;
+}
+
+.select-container select:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.select-container select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.select-container select option {
+  padding: 8px;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+  color: #666;
+}
+
+/* Fix for the dropdowns in kiosk mode */
+#class-select,
+#session-select {
+  margin-bottom: 8px;
+}
+
+/* Add these styles to your existing CSS file */
+
+/* Reload camera button styles */
+.reload-camera-button {
+  background-color: white;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reload-camera-button:hover {
+  background-color: rgba(25, 118, 210, 0.08);
+}
+
+.reload-camera-button svg {
+  font-size: 16px;
+}
+
+/* New larger camera container */
+.camera-container-large {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 620px; /* Increased from 500px */
+  margin: 0 auto;
+}
+
+/* Larger camera wrapper with slightly taller aspect ratio for better face capture */
+.camera-wrapper-large {
+  position: relative;
+  width: 100%;
+  max-width: 620px; /* Increased from 500px */
+  height: 0;
+  padding-bottom: 62.5%; /* Slightly taller than 16:9 for better face capture */
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 12px; /* Slightly larger radius */
+  background-color: #000;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2); /* Deeper shadow */
+  border: 1px solid #666;
+}
+
+/* Larger status indicator */
+.status-indicator-large {
+  width: 100%;
+  max-width: 620px;
+  margin: 16px auto;
+  padding: 16px;
+  border-radius: 10px;
+  text-align: center;
+  background-color: #f5f5f5;
+  font-size: 1.2rem; /* Larger text */
+  font-weight: 500;
+}
+
+.status-indicator-large.ready {
+  background-color: rgba(25, 118, 210, 0.7);
+}
+
+.status-indicator-large.scanning {
+  background-color: rgba(25, 118, 210, 0.7);
+}
+
+.status-indicator-large.processing {
+  background-color: rgba(255, 152, 0, 0.7);
+}
+
+.status-indicator-large.success {
+  background-color: #e8f5e9;
+  border: 1px solid #4caf50;
+  color: #2e7d32;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.status-indicator-large.error {
+  background-color: rgba(244, 67, 54, 0.7);
+}
+
+.camera-container-large .camera-wrapper-large {
+  max-width: 800px;
+}
+
+.camera-container-large .status-indicator-large {
+  max-width: 800px;
+}
