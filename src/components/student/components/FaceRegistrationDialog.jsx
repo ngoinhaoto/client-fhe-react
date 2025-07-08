@@ -43,10 +43,19 @@ const FaceRegistrationDialog = ({
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
             {success.message}
-            <br />
-            Confidence: {(success.confidence * 100).toFixed(1)}%
-            <br />
-            You now have {Math.ceil(success.count / 2)} registered face images.
+            {typeof success.confidence === "number" && (
+              <>
+                <br />
+                Confidence: {(success.confidence * 100).toFixed(1)}%
+              </>
+            )}
+            {typeof success.count === "number" && (
+              <>
+                <br />
+                You now have {Math.ceil(success.count / 2)} registered face
+                images.
+              </>
+            )}
             {success.alignedFace && (
               <Box sx={{ mt: 1, textAlign: "center" }}>
                 <img

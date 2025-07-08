@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import apiService from "../../../api/apiService";
 
+import faceMicroserviceService from "../../../api/faceMicroserviceService";
+
 export default function useFaceRegistration(user) {
   const [registeredFaces, setRegisteredFaces] = useState([]);
   const [faceRegDialogOpen, setFaceRegDialogOpen] = useState(false);
@@ -142,33 +144,21 @@ export default function useFaceRegistration(user) {
         return;
       }
 
-      const formData = new FormData();
-      formData.append("file", imageBlob, "register-face.jpg");
-      formData.append("device_id", "web");
-
-      const response = await apiService.post(
-        "/attendance/register-face",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        },
+      const data = await faceMicroserviceService.registerFace(
+        imageBlob,
+        user.id,
       );
 
       setFaceRegSuccess({
         message: "Face registered successfully!",
-        confidence: response.data.confidence,
-        count: response.data.embeddings_count,
-        alignedFace: response.data.aligned_face,
+        confidence: typeof data.confidence === "number" ? data.confidence : null,
+        count: typeof data.embeddings_count === "number" ? data.embeddings_count : null,
+        alignedFace: data.aligned_face,
       });
 
       await fetchRegisteredFaces();
     } catch (error) {
-      console.error("Error registering face:", error);
-      setFaceRegError(
-        error.response?.data?.detail || "Failed to register face",
-      );
+      setFaceRegError(error.message || "Failed to register face");
     } finally {
       setFaceRegLoading(false);
     }

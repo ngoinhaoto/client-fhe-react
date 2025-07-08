@@ -23,6 +23,7 @@ import {
   Schedule as ClockIcon,
 } from "@mui/icons-material";
 import apiService from "../../api/apiService";
+import faceMicroserviceService from "../../../src/api/faceMicroserviceService";
 import { clearCachePattern } from "../../utils/apiCache";
 
 // Import utility functions from dateUtils
@@ -33,6 +34,7 @@ const AttendanceCheckIn = () => {
   const [loading, setLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [processingAttendance, setProcessingAttendance] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -251,13 +253,14 @@ const AttendanceCheckIn = () => {
         return;
       }
 
-      // Create form data
+      // Prepare form data for FHE microservice
       const formData = new FormData();
       formData.append("file", imageBlob, "check-in.jpg");
+      formData.append("session_id", selectedSessionId);
 
-      // Send to API
-      const response = await apiService.post(
-        `/attendance/check-in?session_id=${selectedSessionId}`,
+      // Send to FHE microservice endpoint
+      const response = await faceMicroserviceService.post(
+        "/fhe/check-in/",
         formData,
         {
           headers: {
@@ -285,27 +288,34 @@ const AttendanceCheckIn = () => {
       setProcessingAttendance(false);
 
       if (error.response) {
-        // Server responded with error
         const errorMsg = error.response.data?.detail || "Failed to check in.";
-
-        if (errorMsg.includes("No face detected")) {
-          setError(
-            "No face detected in the image. Please ensure your face is clearly visible and try again.",
-          );
-        } else if (errorMsg.includes("Face not recognized")) {
-          setError(
-            "Your face was not recognized. Please make sure you have registered your face in your profile.",
-          );
-        } else if (errorMsg.includes("Only students")) {
-          setError(
-            "This feature is currently limited to students. Please contact your administrator.",
-          );
-        } else {
-          setError(errorMsg);
-        }
+        setError(errorMsg);
       } else {
         setError("Network error. Please try again.");
       }
+    }
+  };
+
+  const handleVerifyFace = async () => {
+    setProcessing(true);
+    setError("");
+    try {
+      const imageBlob = await captureImage();
+      if (!imageBlob) {
+        setError("Failed to capture image.");
+        setProcessing(false);
+        return;
+      }
+      const data = await faceMicroserviceService.verifyFace(
+        imageBlob,
+        selectedSessionId,
+      );
+      // Handle verification result (data)
+      // e.g., setSuccessMessage, update UI, etc.
+    } catch (error) {
+      setError(error.message || "Verification failed.");
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -523,6 +533,15 @@ const AttendanceCheckIn = () => {
                 disabled={processingAttendance}
               >
                 {processingAttendance ? "Processing..." : "Check In"}
+              </Button>
+
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={handleVerifyFace}
+                disabled={processingAttendance}
+              >
+                Verify Face
               </Button>
 
               <Button

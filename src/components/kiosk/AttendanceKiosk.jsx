@@ -30,7 +30,7 @@ const AttendanceKiosk = () => {
   const location = useLocation();
 
   // Camera state
-  const [status, setStatus] = useState("ready"); // ready, scanning, processing, success, error
+  const [status, setStatus] = useState("ready");
   const [message, setMessage] = useState("Waiting to scan...");
 
   // Session state

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-
+import faceMicroserviceService from "../../../api/faceMicroserviceService";
 export default function useCameraFunctions({
   videoRef,
   canvasRef,
@@ -11,6 +11,7 @@ export default function useCameraFunctions({
   apiService,
   setRecentCheckins,
   sessionInfo,
+  onCheckinSuccess,
 }) {
   // Start camera
   const startCamera = useCallback(
@@ -270,7 +271,7 @@ export default function useCameraFunctions({
       setMessage("Initializing camera...");
       setErrorMessage("");
 
-      // Check if camera is working properly
+      // Camera checks (as before)
       if (
         !streamRef.current ||
         !videoRef.current ||
@@ -282,11 +283,7 @@ export default function useCameraFunctions({
         if (!cameraStarted) {
           throw new Error("Failed to initialize camera. Please try again.");
         }
-
-        // Give camera time to warm up
         await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        // Double-check camera is working
         if (!streamRef.current || !videoRef.current.readyState) {
           throw new Error("Camera initialized but not streaming properly.");
         }
@@ -294,11 +291,9 @@ export default function useCameraFunctions({
 
       setMessage("Capturing image...");
 
-      // Ensure video element has valid dimensions before capture
       if (!videoRef.current.videoWidth || !videoRef.current.videoHeight) {
         console.warn("Video dimensions not available, waiting...");
         await new Promise((resolve) => setTimeout(resolve, 1000));
-
         if (!videoRef.current.videoWidth) {
           throw new Error(
             "Camera not providing video frames. Please try again.",
@@ -306,9 +301,8 @@ export default function useCameraFunctions({
         }
       }
 
-      // Capture image with additional validation
+      // Capture image
       const imageBlob = await captureImage();
-
       if (!imageBlob || imageBlob.size < 5000) {
         throw new Error(
           "Captured image is too small or empty. Please ensure good lighting.",
@@ -317,69 +311,115 @@ export default function useCameraFunctions({
 
       setMessage("Processing face recognition...");
 
-      // Create form data
-      const formData = new FormData();
-      formData.append("file", imageBlob, "attendance.jpg");
+      try {
+        // Use FHE microservice for check-in
+        console.log("Using FHE microservice for check-in");
+        const response = await faceMicroserviceService.verifyFace(
+          imageBlob,
+          selectedSessionId,
+        );
+        console.log("Check-in response:", response);
 
-      // Send to API
-      setMessage("Sending to server...");
-      const response = await apiService.post(
-        `/attendance/check-in?session_id=${selectedSessionId}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
+        // Process the successful response
+        if (response && response.match_found) {
+          // 1. Send check-in to server
+          const checkInPayload = {
+            session_id: selectedSessionId,
+            user_id: response.best_match.user_id,
+            verification_method: "fhe",
+          };
 
-      // Update status and message
-      setStatus("success");
-      console.log("Check-in response:", response.data);
-      setMessage(
-        `Success! ${
-          response.data.user?.full_name ||
-          response.data.user?.name ||
-          response.data.user_name ||
-          "Unknown Student"
-        } is ${
-          response.data.status === "LATE"
-            ? `late (${response.data.late_minutes || 0} minutes).`
-            : "on time."
-        }`,
-      );
+          let checkInResult = null;
+          try {
+            checkInResult = await apiService.post(
+              "/fhe/fhe-check-in",
+              checkInPayload,
+            );
+          } catch (err) {
+            setStatus("error");
+            setMessage(
+              "Check-in failed: " + (err.response?.data?.detail || err.message),
+            );
+            return;
+          }
 
-      // Add to recent check-ins
-      const checkin = {
-        id: Date.now(),
-        name:
-          response.data.user?.full_name ||
-          response.data.full_name ||
-          response.data.student_name ||
-          response.data.user?.name ||
-          response.data.user_name ||
-          "Unknown Student",
-        time: new Date().toLocaleTimeString(),
-        status: response.data.status,
-        lateMinutes: response.data.late_minutes || 0,
-      };
+          // 2. Use checkInResult.data for your UI
+          setRecentCheckins((prev) => [
+            {
+              id: response.best_match.user_id,
+              name: response.best_match.full_name,
+              status: checkInResult.data.status?.toLowerCase() || "present",
+              time: checkInResult.data.check_in_time
+                ? new Date(
+                    checkInResult.data.check_in_time,
+                  ).toLocaleTimeString()
+                : new Date().toLocaleTimeString(),
+              // ...other fields...
+            },
+            ...prev.slice(0, 9),
+          ]);
 
-      setRecentCheckins((prev) => [checkin, ...prev.slice(0, 9)]);
+          setStatus("success");
+          setMessage(`Welcome, ${response.best_match.full_name || "Student"}!`);
 
-      // Reset after 3 seconds
-      setTimeout(() => {
-        setStatus("scanning");
-        setMessage("Waiting to scan...");
-      }, 3000);
+          // Optional: Call success callback if you have one
+          if (typeof onCheckinSuccess === "function") {
+            onCheckinSuccess(response);
+          }
+
+          setTimeout(() => {
+            setStatus("scanning");
+            setMessage("Waiting to scan...");
+          }, 3000);
+        } else {
+          setStatus("error");
+          setMessage(
+            "Face not recognized. Please try again or contact support.",
+          );
+          setTimeout(() => {
+            setStatus("scanning");
+            setMessage("Waiting to scan...");
+          }, 5000);
+        }
+      } catch (error) {
+        console.error("Face verification error:", error);
+        setStatus("error");
+        let errorMsg = "Failed to verify face";
+        if (error.response) {
+          const errorDetail = error.response.data?.detail || "";
+          if (
+            typeof errorDetail === "string" &&
+            (errorDetail.includes("400:") ||
+              errorDetail.includes("Incomplete face") ||
+              errorDetail.includes("No face detected") ||
+              errorDetail.includes("Face could not be detected") ||
+              errorDetail.includes("spoofing"))
+          ) {
+            let cleanMessage = errorDetail;
+            if (cleanMessage.includes("400:")) {
+              cleanMessage = cleanMessage.split("400:")[1].trim();
+            }
+            errorMsg = cleanMessage;
+          } else if (error.response.status === 400) {
+            errorMsg = errorDetail || "Face validation failed";
+          } else {
+            errorMsg = "Server error processing your face. Please try again.";
+          }
+        } else if (error.message) {
+          errorMsg = error.message;
+        }
+        setMessage(errorMsg);
+        setErrorMessage(errorMsg);
+        setTimeout(() => {
+          setStatus("scanning");
+          setMessage("Waiting to scan...");
+        }, 5000);
+      }
     } catch (error) {
-      console.error("Check-in error:", error);
+      console.error("Camera or capture error:", error);
       setStatus("error");
-
-      // Extract error message from response if available
-      const errorMsg =
-        error.response?.data?.detail || error.message || "Failed to check in";
-      setMessage(errorMsg);
-      setErrorMessage(errorMsg);
+      setMessage(error.message || "Failed to check in");
+      setErrorMessage(error.message || "Failed to check in");
 
       // Reset after 3 seconds
       setTimeout(() => {
